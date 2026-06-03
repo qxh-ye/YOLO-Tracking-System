@@ -1,4 +1,5 @@
 import cv2
+import time
 from ultralytics import YOLO
 from collections import defaultdict
 
@@ -28,16 +29,23 @@ def main():
         conf=0.25,
         verbose=False
     )
+    prev_time = time.time()
 
     tracked_ids = set()
 
     track_history = defaultdict(list)
     last_positions = {}
     crossed_ids = set()
-    cross_count = 0
+    enter_count = 0
+    exit_count = 0
+    fps = 0
 
     for result in results:
         frame = result.plot()
+        current_time = time.time()
+        instant_fps = 1 / (current_time - prev_time)
+        fps = fps * 0.9 + instant_fps * 0.1
+        prev_time = current_time
 
         frame_h, frame_w = frame.shape[:2]
         line_y = int(frame_h * 0.55)
@@ -84,7 +92,10 @@ def main():
                     last_side = last_positions[track_id]
 
                     if last_side != current_side and track_id not in crossed_ids:
-                        cross_count += 1
+                        if last_side == "above" and current_side == "below":
+                            enter_count += 1
+                        elif last_side == "below" and current_side == "above":
+                            exit_count += 1
                         crossed_ids.add(track_id)
                 last_positions[track_id] = current_side
 
@@ -138,11 +149,29 @@ def main():
         )
         cv2.putText(
             frame,
-            f"Cross Count: {cross_count}",
+            f"Enter Count: {enter_count}",
             (30, 120),
             cv2.FONT_HERSHEY_SIMPLEX,
             1,
             (0, 0, 255),
+            2
+        )
+        cv2.putText(
+            frame,
+            f"Exit Count: {exit_count}",
+            (30, 160),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 0, 255),
+            2
+        )
+        cv2.putText(
+            frame,
+            f"FPS: {fps:.1f}",
+            (30, 200),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 255),
             2
         )
         cv2.imshow("YOLO Tracking", frame)
