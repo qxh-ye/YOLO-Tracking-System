@@ -114,12 +114,33 @@ def main():
                     if last_side != current_side and track_id not in crossed_ids:
                         if last_side == "above" and current_side == "below":
                             enter_count += 1
+                            event_log.append(
+                                f"{time.strftime('%H:%M:%S')}"
+                                f"ID {track_id} ENTER"
+                            )
+                            print("=" * 30)
+                            for log in event_log[-5:]:
+                                print(log)
                         elif last_side == "below" and current_side == "above":
                             exit_count += 1
+                            event_log.append(
+                                f"{time.strftime('%H:%M:%S')}"
+                                f"ID {track_id} EXIT"
+                            )
+                            print("=" * 30)
+                            for log in event_log[-5:]:
+                                print(log)
+
                         crossed_ids.add(track_id)
                         event_log.append(
                             f"ID {track_id} crossed line"
                         )
+                        print("=" * 30)
+                        for log in event_log[-5:]:
+                            print(log)
+                        if len(event_log) > 20:
+                            event_log.pop(0)
+
                 last_positions[track_id] = current_side
 
                 track_history[track_id].append((bottom_center_x, bottom_center_y))
