@@ -5,6 +5,13 @@ from collections import defaultdict
 
 MODEL_PATH = "models/yolov8n.pt"
 VIDEO_PATH = "videos/test1.mp4"
+
+ROI_X1 = 350
+ROI_Y1 = 250
+
+ROI_X2 = 1500
+ROI_Y2 = 850
+
 def main():
     model = YOLO(MODEL_PATH)
 
@@ -39,13 +46,23 @@ def main():
     enter_count = 0
     exit_count = 0
     fps = 0
+    event_log = []
 
     for result in results:
         frame = result.plot()
+        roi_count = 0
         current_time = time.time()
         instant_fps = 1 / (current_time - prev_time)
         fps = fps * 0.9 + instant_fps * 0.1
         prev_time = current_time
+
+        cv2.rectangle(
+            frame,
+            (ROI_X1, ROI_Y1),
+            (ROI_X2, ROI_Y2),
+            (0, 255, 255),
+            2
+        )
 
         frame_h, frame_w = frame.shape[:2]
         line_y = int(frame_h * 0.55)
@@ -87,6 +104,9 @@ def main():
                 bottom_center_x = max(0, min(bottom_center_x, frame_w - 1))
                 bottom_center_y = max(0, min(bottom_center_y, frame_h - 1))
 
+                if (ROI_X1 < bottom_center_x < ROI_X2 and ROI_Y1 < bottom_center_y < ROI_Y2):
+                    roi_count += 1
+
                 current_side = "above" if bottom_center_y < line_y else "below"
                 if track_id in last_positions:
                     last_side = last_positions[track_id]
@@ -97,11 +117,14 @@ def main():
                         elif last_side == "below" and current_side == "above":
                             exit_count += 1
                         crossed_ids.add(track_id)
+                        event_log.append(
+                            f"ID {track_id} crossed line"
+                        )
                 last_positions[track_id] = current_side
 
                 track_history[track_id].append((bottom_center_x, bottom_center_y))
                 if len(track_history[track_id]) > 5:
-                    track_history[track_id].pop()
+                    track_history[track_id].pop(0)
                 points = track_history[track_id]
 
                 for i in range(1, len(points)):
@@ -168,6 +191,16 @@ def main():
         cv2.putText(
             frame,
             f"FPS: {fps:.1f}",
+            (30, 240),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 255),
+            2
+        )
+
+        cv2.putText(
+            frame,
+            f"ROI Person: {roi_count}",
             (30, 200),
             cv2.FONT_HERSHEY_SIMPLEX,
             1,

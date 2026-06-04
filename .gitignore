@@ -11,3 +11,5 @@ videos/
 
 venv/
 .venv/
+
+.idea/
