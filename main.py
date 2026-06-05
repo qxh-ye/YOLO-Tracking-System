@@ -3,6 +3,9 @@ import time
 from ultralytics import YOLO
 from collections import defaultdict
 
+from managers.event_manager import EventManager
+from managers.roi_manager import ROIManager
+
 MODEL_PATH = "models/yolov8n.pt"
 VIDEO_PATH = "videos/test1.mp4"
 
@@ -46,9 +49,8 @@ def main():
     enter_count = 0
     exit_count = 0
     fps = 0
-    event_log = []
-    roi_enter_time = {}
-    roi_inside_status = {}
+    event_manager = EventManager()
+    roi_manager = ROIManager(ROI_X1, ROI_Y1, ROI_X2, ROI_Y2)
 
     for result in results:
         frame = result.plot()
@@ -104,36 +106,20 @@ def main():
                 bottom_center_x = max(0, min(bottom_center_x, frame_w - 1))
                 bottom_center_y = max(0, min(bottom_center_y, frame_h - 1))
 
-                is_in_roi = (ROI_X1 < bottom_center_x < ROI_X2 and ROI_Y1 < bottom_center_y < ROI_Y2)
+                is_in_roi, event = roi_manager.update(
+                    track_id,
+                    bottom_center_x,
+                    bottom_center_y
+                )
 
                 if is_in_roi:
                     roi_count += 1
 
-                last_in_roi = roi_inside_status.get(track_id, False)
-
-                if is_in_roi and not last_in_roi:
-                    roi_enter_time[track_id] = time.time()
-                    event_log.append(
-                        f"[{time.strftime('%H:%M:%S')}] ID {track_id} ROI ENTER"
-                    )
-                    if len(event_log) > 20:
-                        event_log.pop(0)
+                if event:
+                    event_manager.add_event(event)
                     print("=" * 30)
-                    for log in event_log[-5:]:
+                    for log in event_manager.get_recent_events():
                         print(log)
-                elif not is_in_roi and last_in_roi:
-                    if track_id in roi_enter_time:
-                        stay_time = time.time() - roi_enter_time[track_id]
-                        event_log.append(
-                            f"[{time.strftime('%H:%M:%S')}] ID {track_id} ROI EXIT, Stay {stay_time:.1f}s"
-                        )
-                        if len(event_log) > 20:
-                            event_log.pop(0)
-                        print("=" * 30)
-                        for log in event_log[-5:]:
-                            print(log)
-                        del roi_enter_time[track_id]
-                roi_inside_status[track_id] = is_in_roi
 
                 current_side = "above" if bottom_center_y < line_y else "below"
                 if track_id in last_positions:
@@ -252,7 +238,7 @@ def main():
             (255, 255, 255),
             2
         )
-        for i, log in enumerate(event_log[-5:]):
+        for i, log in enumerate(event_manager.get_recent_events()):
             cv2.putText(
                 frame,
                 log,
