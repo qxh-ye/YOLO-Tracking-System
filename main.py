@@ -47,6 +47,8 @@ def main():
     exit_count = 0
     fps = 0
     event_log = []
+    roi_enter_time = {}
+    roi_inside_status = {}
 
     for result in results:
         frame = result.plot()
@@ -75,7 +77,6 @@ def main():
         )
 
         current_person_count = 0
-        current_ids = set()
         if result.boxes is None:
             continue
 
@@ -92,7 +93,6 @@ def main():
 
             if class_name == "person":
                 current_person_count += 1
-                current_ids.add(track_id)
                 tracked_ids.add(track_id)
 
                 x, y, w, h = xywh
@@ -104,8 +104,36 @@ def main():
                 bottom_center_x = max(0, min(bottom_center_x, frame_w - 1))
                 bottom_center_y = max(0, min(bottom_center_y, frame_h - 1))
 
-                if (ROI_X1 < bottom_center_x < ROI_X2 and ROI_Y1 < bottom_center_y < ROI_Y2):
+                is_in_roi = (ROI_X1 < bottom_center_x < ROI_X2 and ROI_Y1 < bottom_center_y < ROI_Y2)
+
+                if is_in_roi:
                     roi_count += 1
+
+                last_in_roi = roi_inside_status.get(track_id, False)
+
+                if is_in_roi and not last_in_roi:
+                    roi_enter_time[track_id] = time.time()
+                    event_log.append(
+                        f"[{time.strftime('%H:%M:%S')}] ID {track_id} ROI ENTER"
+                    )
+                    if len(event_log) > 20:
+                        event_log.pop(0)
+                    print("=" * 30)
+                    for log in event_log[-5:]:
+                        print(log)
+                elif not is_in_roi and last_in_roi:
+                    if track_id in roi_enter_time:
+                        stay_time = time.time() - roi_enter_time[track_id]
+                        event_log.append(
+                            f"[{time.strftime('%H:%M:%S')}] ID {track_id} ROI EXIT, Stay {stay_time:.1f}s"
+                        )
+                        if len(event_log) > 20:
+                            event_log.pop(0)
+                        print("=" * 30)
+                        for log in event_log[-5:]:
+                            print(log)
+                        del roi_enter_time[track_id]
+                roi_inside_status[track_id] = is_in_roi
 
                 current_side = "above" if bottom_center_y < line_y else "below"
                 if track_id in last_positions:
@@ -114,37 +142,16 @@ def main():
                     if last_side != current_side and track_id not in crossed_ids:
                         if last_side == "above" and current_side == "below":
                             enter_count += 1
-                            event_log.append(
-                                f"{time.strftime('%H:%M:%S')}"
-                                f"ID {track_id} ENTER"
-                            )
-                            print("=" * 30)
-                            for log in event_log[-5:]:
-                                print(log)
+
                         elif last_side == "below" and current_side == "above":
                             exit_count += 1
-                            event_log.append(
-                                f"{time.strftime('%H:%M:%S')}"
-                                f"ID {track_id} EXIT"
-                            )
-                            print("=" * 30)
-                            for log in event_log[-5:]:
-                                print(log)
 
                         crossed_ids.add(track_id)
-                        event_log.append(
-                            f"ID {track_id} crossed line"
-                        )
-                        print("=" * 30)
-                        for log in event_log[-5:]:
-                            print(log)
-                        if len(event_log) > 20:
-                            event_log.pop(0)
 
                 last_positions[track_id] = current_side
 
                 track_history[track_id].append((bottom_center_x, bottom_center_y))
-                if len(track_history[track_id]) > 5:
+                if len(track_history[track_id]) > 30:
                     track_history[track_id].pop(0)
                 points = track_history[track_id]
 
@@ -159,11 +166,11 @@ def main():
                         (0, 255, 0),
                         2
                     )
-
-        print(
-            f"Current persons: {current_person_count}, "
-            f"Total track IDs: {len(tracked_ids)}"
-        )
+        if int(current_time) % 2 == 0:
+            print(
+                f"Current persons: {current_person_count}, "
+                f"Total track IDs: {len(tracked_ids)}"
+            )
         cv2.putText(
             frame,
             f"Current persons: {current_person_count}",
@@ -175,7 +182,7 @@ def main():
         )
         cv2.putText(
             frame,
-            f"History IDs: {len(tracked_ids)}",
+            f"Total Unique IDs: {len(tracked_ids)}",
             (30, 80),
             cv2.FONT_HERSHEY_SIMPLEX,
             1,
@@ -228,6 +235,34 @@ def main():
             (0, 255, 255),
             2
         )
+        y_offset = 300
+
+        # =========================
+        # Event Panel
+        # =========================
+        panel_x = 30
+        panel_y = 330
+        line_height = 26
+        cv2.putText(
+            frame,
+            "Recent Events:",
+            (30, y_offset),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (255, 255, 255),
+            2
+        )
+        for i, log in enumerate(event_log[-5:]):
+            cv2.putText(
+                frame,
+                log,
+                (panel_x, panel_y + (i + 1) * line_height),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (255, 255, 255),
+                2
+            )
+
         cv2.imshow("YOLO Tracking", frame)
 
         if cv2.waitKey(1) & 0xff == ord("q"):
