@@ -5,15 +5,8 @@ from collections import defaultdict
 
 from managers.event_manager import EventManager
 from managers.roi_manager import ROIManager
-
-MODEL_PATH = "models/yolov8n.pt"
-VIDEO_PATH = "videos/test1.mp4"
-
-ROI_X1 = 350
-ROI_Y1 = 250
-
-ROI_X2 = 1500
-ROI_Y2 = 850
+from utils.visualizer import Visualizer
+from config import *
 
 def main():
     model = YOLO(MODEL_PATH)
@@ -60,22 +53,21 @@ def main():
         fps = fps * 0.9 + instant_fps * 0.1
         prev_time = current_time
 
-        cv2.rectangle(
+        # 导包调用画框
+        Visualizer.draw_roi(
             frame,
-            (ROI_X1, ROI_Y1),
-            (ROI_X2, ROI_Y2),
-            (0, 255, 255),
-            2
+            ROI_X1,
+            ROI_Y1,
+            ROI_X2,
+            ROI_Y2
         )
 
         frame_h, frame_w = frame.shape[:2]
         line_y = int(frame_h * 0.55)
-        cv2.line(
+        # 导包调用画线
+        Visualizer.draw_counting_line(
             frame,
-            (0, line_y),
-            (frame_w, line_y),
-            (0, 0, 255),
-            2
+            line_y
         )
 
         current_person_count = 0
@@ -157,97 +149,22 @@ def main():
                 f"Current persons: {current_person_count}, "
                 f"Total track IDs: {len(tracked_ids)}"
             )
-        cv2.putText(
+        Visualizer.draw_stats(
             frame,
-            f"Current persons: {current_person_count}",
-            (30, 40),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 255, 0),
-            2
-        )
-        cv2.putText(
-            frame,
-            f"Total Unique IDs: {len(tracked_ids)}",
-            (30, 80),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 255, 0),
-            2
-        )
-        cv2.putText(
-            frame,
-            "Counting Line",
-            (30, line_y - 10),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.8,
-            (0, 0, 255),
-            2
-        )
-        cv2.putText(
-            frame,
-            f"Enter Count: {enter_count}",
-            (30, 120),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 0, 255),
-            2
-        )
-        cv2.putText(
-            frame,
-            f"Exit Count: {exit_count}",
-            (30, 160),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 0, 255),
-            2
-        )
-        cv2.putText(
-            frame,
-            f"FPS: {fps:.1f}",
-            (30, 240),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 255, 255),
-            2
-        )
-
-        cv2.putText(
-            frame,
-            f"ROI Person: {roi_count}",
-            (30, 200),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 255, 255),
-            2
+            current_person_count,
+            len(tracked_ids),
+            enter_count,
+            exit_count,
+            roi_count,
+            fps
         )
         y_offset = 300
 
         # =========================
         # Event Panel
         # =========================
-        panel_x = 30
-        panel_y = 330
-        line_height = 26
-        cv2.putText(
-            frame,
-            "Recent Events:",
-            (30, y_offset),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.7,
-            (255, 255, 255),
-            2
-        )
-        for i, log in enumerate(event_manager.get_recent_events()):
-            cv2.putText(
-                frame,
-                log,
-                (panel_x, panel_y + (i + 1) * line_height),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                (255, 255, 255),
-                2
-            )
+        # 显示事件
+        Visualizer.draw_event_panel(frame, event_manager.get_recent_events())
 
         cv2.imshow("YOLO Tracking", frame)
 
