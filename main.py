@@ -1,12 +1,12 @@
 import cv2
 import time
 from ultralytics import YOLO
-from collections import defaultdict
 
 from managers.event_manager import EventManager
 from managers.roi_manager import ROIManager
 from utils.visualizer import Visualizer
 from config import *
+from managers.track_manager import TrackManager
 
 def main():
     model = YOLO(MODEL_PATH)
@@ -29,18 +29,14 @@ def main():
         persist=True,
         tracker="bytetrack.yaml",
         classes=[0],
-        conf=0.25,
+        conf=CONF,
         verbose=False
     )
     prev_time = time.time()
 
     tracked_ids = set()
 
-    track_history = defaultdict(list)
-    last_positions = {}
-    crossed_ids = set()
-    enter_count = 0
-    exit_count = 0
+    track_manager = TrackManager()
     fps = 0
     event_manager = EventManager()
     roi_manager = ROIManager(ROI_X1, ROI_Y1, ROI_X2, ROI_Y2)
@@ -113,48 +109,29 @@ def main():
                     for log in event_manager.get_recent_events():
                         print(log)
 
-                current_side = "above" if bottom_center_y < line_y else "below"
-                if track_id in last_positions:
-                    last_side = last_positions[track_id]
-
-                    if last_side != current_side and track_id not in crossed_ids:
-                        if last_side == "above" and current_side == "below":
-                            enter_count += 1
-
-                        elif last_side == "below" and current_side == "above":
-                            exit_count += 1
-
-                        crossed_ids.add(track_id)
-
-                last_positions[track_id] = current_side
-
-                track_history[track_id].append((bottom_center_x, bottom_center_y))
-                if len(track_history[track_id]) > 30:
-                    track_history[track_id].pop(0)
-                points = track_history[track_id]
-
-                for i in range(1, len(points)):
-                    x1, y1 = points[i - 1]
-                    x2, y2 = points[i]
-
-                    cv2.line(
-                        frame,
-                        (x1, y1),
-                        (x2, y2),
-                        (0, 255, 0),
-                        2
-                    )
+                line_event = track_manager.update(
+                    track_id,
+                    bottom_center_x,
+                    bottom_center_y,
+                    line_y
+                )
+                if line_event:
+                    event_manager.add_event(line_event)
+                points = track_manager.get_history(track_id)
+                # 画历史轨迹线
+                Visualizer.draw_track_history(frame, points)
         if int(current_time) % 2 == 0:
             print(
                 f"Current persons: {current_person_count}, "
                 f"Total track IDs: {len(tracked_ids)}"
             )
+        # 画状态栏
         Visualizer.draw_stats(
             frame,
             current_person_count,
             len(tracked_ids),
-            enter_count,
-            exit_count,
+            track_manager.enter_count,
+            track_manager.exit_count,
             roi_count,
             fps
         )

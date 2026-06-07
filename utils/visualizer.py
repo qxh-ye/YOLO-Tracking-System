@@ -1,6 +1,7 @@
 import cv2
 
 class Visualizer:
+
     @staticmethod  # @staticmethod 不需要创建对象便可直接调用
     def draw_roi(
             frame,
@@ -84,5 +85,19 @@ class Visualizer:
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.6,
                 (255, 255, 255),
+                2
+            )
+
+    @staticmethod
+    def draw_track_history(frame, points):
+        for i in range(1, len(points)):
+            x1, y1 = points[i - 1]
+            x2, y2 = points[i]
+
+            cv2.line(
+                frame,
+                (x1, y1),
+                (x2, y2),
+                (0, 255, 0),
                 2
             )
