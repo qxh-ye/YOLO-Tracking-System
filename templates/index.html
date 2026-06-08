@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<style>
+body{
+    font-family: Arial;
+    margin:40px;
+}
+
+.card{
+    border:1px solid #ccc;
+    padding:15px;
+    margin-bottom:15px;
+    border-radius:10px;
+    width:300px;
+}
+</style>
+<head>
+    <title>YOLO Dashboard</title>
+</head>
+
+<body>
+
+<h1>YOLO Tracking Dashboard</h1>
+
+<div class="card">
+    <h3>FPS</h3>
+    <p>{{ data.fps }}</p>
+</div>
+
+<div class="card">
+    <h3>ROI Count</h3>
+    <p>{{ data.roi_count }}</p>
+</div>
+
+<div class="card">
+    <h3>Enter Count</h3>
+    <p>{{ data.enter_count }}</p>
+</div>
+
+<div class="card">
+    <h3>Exit Count</h3>
+    <p>{{ data.exit_count }}</p>
+</div>
+
+<h2>Events</h2>
+
+<ul>
+{% for event in data.events %}
+    <li>{{ event }}</li>
+{% endfor %}
+</ul>
+
+</body>
+</html>
