@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
 
@@ -19,6 +19,10 @@ def index():
         "index.html",
         data=data
     )
+
+@app.route("/api/status")
+def status():
+    return jsonify(data)
 
 if __name__ == "__main__":
     app.run(debug=True)
