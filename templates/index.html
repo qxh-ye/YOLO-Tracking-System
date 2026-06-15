@@ -1,22 +1,22 @@
 <!DOCTYPE html>
 <html>
-
-<style>
-body{
-    font-family: Arial;
-    margin:40px;
-}
-
-.card{
-    border:1px solid #ccc;
-    padding:15px;
-    margin-bottom:15px;
-    border-radius:10px;
-    width:300px;
-}
-</style>
 <head>
     <title>YOLO Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 40px;
+        }
+
+        .card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            width: 300px;
+        }
+    </style>
 </head>
 
 <body>
@@ -25,31 +25,63 @@ body{
 
 <div class="card">
     <h3>FPS</h3>
-    <p>{{ data.fps }}</p>
+    <p id="fps">0</p>
 </div>
 
 <div class="card">
     <h3>ROI Count</h3>
-    <p>{{ data.roi_count }}</p>
+    <p id="roi_count">0</p>
 </div>
 
 <div class="card">
     <h3>Enter Count</h3>
-    <p>{{ data.enter_count }}</p>
+    <p id="enter_count">0</p>
 </div>
 
 <div class="card">
     <h3>Exit Count</h3>
-    <p>{{ data.exit_count }}</p>
+    <p id="exit_count">0</p>
+</div>
+
+<div class="card">
+    <h3>Current Person Count</h3>
+    <p id="current_person_count">0</p>
+</div>
+
+<div class="card">
+    <h3>Total Unique IDs</h3>
+    <p id="total_unique_ids">0</p>
 </div>
 
 <h2>Events</h2>
+<ul id="events"></ul>
 
-<ul>
-{% for event in data.events %}
-    <li>{{ event }}</li>
-{% endfor %}
-</ul>
+<script>
+async function updateStatus() {
+    const response = await fetch("/api/status");
+    const data = await response.json();
+
+    document.getElementById("fps").innerText = data.fps;
+    document.getElementById("roi_count").innerText = data.roi_count;
+    document.getElementById("enter_count").innerText = data.enter_count;
+    document.getElementById("exit_count").innerText = data.exit_count;
+    document.getElementById("current_person_count").innerText = data.current_person_count;
+    document.getElementById("total_unique_ids").innerText = data.total_unique_ids;
+
+    const eventsList = document.getElementById("events");
+    eventsList.innerHTML = "";
+
+    data.events.forEach(function(event) {
+        const li = document.createElement("li");
+        li.innerText = event;
+        eventsList.appendChild(li);
+    });
+}
+
+updateStatus();
+
+setInterval(updateStatus, 1000);
+</script>
 
 </body>
 </html>

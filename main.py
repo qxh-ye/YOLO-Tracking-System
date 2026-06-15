@@ -1,5 +1,6 @@
 import cv2
 import time
+import threading
 from ultralytics import YOLO
 
 from managers.event_manager import EventManager
@@ -7,9 +8,16 @@ from managers.roi_manager import ROIManager
 from utils.visualizer import Visualizer
 from config import *
 from managers.track_manager import TrackManager
+from dashboard import run_dashboard
+from shared_status import update_status
 
 def main():
     model = YOLO(MODEL_PATH)
+    dashboard_thread = threading.Thread(
+        target=run_dashboard,
+        daemon=True
+    )
+    dashboard_thread.start()
 
     cv2.namedWindow(
         "YOLO Tracking",
@@ -125,6 +133,15 @@ def main():
                 f"Current persons: {current_person_count}, "
                 f"Total track IDs: {len(tracked_ids)}"
             )
+        update_status({
+            "fps": round(fps, 1),
+            "roi_count": roi_count,
+            "enter_count": track_manager.enter_count,
+            "exit_count": track_manager.exit_count,
+            "current_person_count": current_person_count,
+            "total_unique_ids": len(tracked_ids),
+            "events": event_manager.get_recent_events()
+        })
         # 画状态栏
         Visualizer.draw_stats(
             frame,
