@@ -53,6 +53,11 @@
     <p id="total_unique_ids">0</p>
 </div>
 
+<div class="card">
+    <h3>Status</h3>
+    <p id="status">Running</p>
+</div>
+
 <h2>Events</h2>
 <ul id="events"></ul>
 
@@ -67,6 +72,7 @@ async function updateStatus() {
     document.getElementById("exit_count").innerText = data.exit_count;
     document.getElementById("current_person_count").innerText = data.current_person_count;
     document.getElementById("total_unique_ids").innerText = data.total_unique_ids;
+    document.getElementById("status").innerText = "Running";
 
     const eventsList = document.getElementById("events");
     eventsList.innerHTML = "";
