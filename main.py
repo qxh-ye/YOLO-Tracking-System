@@ -1,6 +1,7 @@
 import cv2
 import time
 import threading
+import argparse
 from ultralytics import YOLO
 
 from managers.event_manager import EventManager
@@ -14,8 +15,37 @@ from shared_status import update_status
 
 logger = get_logger()
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="YOLO Tracking Pedestrian Flow Analytics System"
+    )
+
+    parser.add_argument(
+        "--video",
+        type=str,
+        default=VIDEO_PATH,
+        help="Path to input video"
+    )
+
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=MODEL_PATH,
+        help="Path to YOLO model"
+    )
+
+    parser.add_argument(
+        "--conf",
+        type=float,
+        default=CONF,
+        help="Confidence threshold"
+    )
+
+    return parser.parse_args()
+
 def main():
-    model = YOLO(MODEL_PATH)
+    args = parse_args()
+    model = YOLO(args.model)
     dashboard_thread = threading.Thread(
         target=run_dashboard,
         daemon=True
@@ -33,14 +63,14 @@ def main():
     )
 
     results = model.track(
-        source=VIDEO_PATH,
+        source=args.video,
         stream=True,
         show=False,
         save=False,
         persist=True,
         tracker="bytetrack.yaml",
         classes=[0],
-        conf=CONF,
+        conf=args.conf,
         verbose=False
     )
     prev_time = time.time()
