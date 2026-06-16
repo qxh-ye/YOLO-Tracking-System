@@ -25,7 +25,7 @@ class ROIManager:
         elif not is_in_roi and last_in_roi:
             if track_id in self.enter_time:
                 stay_time = time.time() - self.enter_time[track_id]
-                event = f" ID{track_id} ROI EXIT, Stay {stay_time:.1f}s"
+                event = f"ID {track_id} ROI EXIT, Stay {stay_time:.1f}s"
                 del self.enter_time[track_id]
 
         self.inside_status[track_id] = is_in_roi

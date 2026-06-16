@@ -6,10 +6,13 @@ from ultralytics import YOLO
 from managers.event_manager import EventManager
 from managers.roi_manager import ROIManager
 from utils.visualizer import Visualizer
+from utils.logger import get_logger
 from config import *
 from managers.track_manager import TrackManager
 from dashboard import run_dashboard
 from shared_status import update_status
+
+logger = get_logger()
 
 def main():
     model = YOLO(MODEL_PATH)
@@ -115,7 +118,7 @@ def main():
                     event_manager.add_event(event)
                     print("=" * 30)
                     for log in event_manager.get_recent_events():
-                        print(log)
+                        logger.info(log)
 
                 line_event = track_manager.update(
                     track_id,
@@ -128,11 +131,13 @@ def main():
                 points = track_manager.get_history(track_id)
                 # 画历史轨迹线
                 Visualizer.draw_track_history(frame, points)
-        if int(current_time) % 2 == 0:
-            print(
+        last_log_time = 0
+        if current_time - last_log_time >= 2:
+            logger.info(
                 f"Current persons: {current_person_count}, "
                 f"Total track IDs: {len(tracked_ids)}"
             )
+            last_log_time = current_time
         update_status({
             "fps": round(fps, 1),
             "roi_count": roi_count,
@@ -166,7 +171,9 @@ def main():
             break
     cv2.destroyAllWindows()
     print("=" * 40)
-    print(f"Final total track IDs: {len(tracked_ids)}")
+    logger.info(
+        f"Final total track IDs: {len(tracked_ids)}"
+    )
 
 
 
