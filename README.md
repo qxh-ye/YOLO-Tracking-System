@@ -214,7 +214,27 @@ http://127.0.0.1:5000
 - 使用共享状态和线程锁解决视频处理线程与 Web 服务线程之间的数据同步问题。
 - 同时支持 OpenCV 本地画面展示和 Web Dashboard 数据展示，便于演示和扩展。
 
-## 8. 后续优化方向
+## 8. 系统流程
+
+```text
+Input Video
+    ↓
+YOLOv8 Detection
+    ↓
+ByteTrack Tracking
+    ↓
+ROIManager / TrackManager
+    ↓
+EventManager
+    ↓
+shared_status
+    ↓
+Flask Dashboard
+    ↓
+Frontend Fetch Auto Refresh
+```
+
+## 9. 后续优化方向
 
 - 使用 `logging` 替代 `print()`，增加日志等级和日志文件输出。
 - 增加命令行参数，支持动态指定模型路径、视频路径、置信度和 ROI 坐标。

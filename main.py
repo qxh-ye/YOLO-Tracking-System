@@ -2,6 +2,7 @@ import cv2
 import time
 import threading
 import argparse
+import os
 from ultralytics import YOLO
 
 from managers.event_manager import EventManager
@@ -45,12 +46,44 @@ def parse_args():
 
 def main():
     args = parse_args()
-    model = YOLO(args.model)
-    dashboard_thread = threading.Thread(
-        target=run_dashboard,
-        daemon=True
-    )
-    dashboard_thread.start()
+    if not os.path.exists(args.model):
+        logger.error(
+            f"Model not found: {args.model}"
+        )
+        return
+
+    try:
+        model = YOLO(args.model)
+    except Exception as e:
+        logger.error(
+            f"Failed to load model: {e}"
+        )
+        return
+
+    if isinstance(args.video, str) and not args.video.startswith(("http://", "https://", "rtso://")):
+        if not os.path.exists(args.video):
+            logger.error(
+                f"Video source not found: {args.video}"
+            )
+            return
+
+    try:
+        results = model.track(
+            source=args.video,
+            stream=True,
+            show=False,
+            save=False,
+            persist=True,
+            tracker="bytetrack.yaml",
+            classes=[0],
+            conf=args.conf,
+            verbose=False
+        )
+    except Exception as e:
+        logger.error(
+            f"Failed to start tracking: {e}"
+        )
+        return
 
     cv2.namedWindow(
         "YOLO Tracking",
@@ -62,17 +95,12 @@ def main():
         720
     )
 
-    results = model.track(
-        source=args.video,
-        stream=True,
-        show=False,
-        save=False,
-        persist=True,
-        tracker="bytetrack.yaml",
-        classes=[0],
-        conf=args.conf,
-        verbose=False
+    dashboard_thread = threading.Thread(
+        target=run_dashboard,
+        daemon=True
     )
+    dashboard_thread.start()
+
     prev_time = time.time()
 
     tracked_ids = set()
@@ -81,6 +109,7 @@ def main():
     fps = 0
     event_manager = EventManager()
     roi_manager = ROIManager(ROI_X1, ROI_Y1, ROI_X2, ROI_Y2)
+    last_log_time = 0
 
     for result in results:
         frame = result.plot()
@@ -161,7 +190,7 @@ def main():
                 points = track_manager.get_history(track_id)
                 # 画历史轨迹线
                 Visualizer.draw_track_history(frame, points)
-        last_log_time = 0
+
         if current_time - last_log_time >= 2:
             logger.info(
                 f"Current persons: {current_person_count}, "
