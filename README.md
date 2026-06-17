@@ -236,10 +236,7 @@ Frontend Fetch Auto Refresh
 
 ## 9. 后续优化方向
 
-- 使用 `logging` 替代 `print()`，增加日志等级和日志文件输出。
-- 增加命令行参数，支持动态指定模型路径、视频路径、置信度和 ROI 坐标。
 - 将事件改为结构化数据，并支持 CSV / JSON 导出。
-- 增加单元测试，重点覆盖 `ROIManager`、`TrackManager` 和 `EventManager`。
 - 优化 Dashboard 页面样式，增加图表、历史事件列表和运行状态提示。
 - 引入 WebSocket，实现更实时的数据推送。
 - 支持摄像头实时输入和 RTSP 视频流。
